@@ -47,14 +47,15 @@ model VerificationToken {
 
 // Application models
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  contacts      Contact[]
+  id                String             @id @default(cuid())
+  name              String?
+  email             String             @unique
+  emailVerified     DateTime?
+  image             String?
+  accounts          Account[]
+  sessions          Session[]
+  contacts          Contact[]
+  suggestedContacts SuggestedContact[]
 }
 
 model Contact {
@@ -93,4 +94,24 @@ enum Source {
   GMAIL
   CALENDAR
   MANUAL
+}
+
+model SuggestedContact {
+  id          String                 @id @default(cuid())
+  email       String
+  name        String?
+  lastEmailed DateTime
+  emailCount  Int                    @default(1)
+  status      SuggestedContactStatus @default(PENDING)
+  userId      String
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  @@unique([email, userId])
+}
+
+enum SuggestedContactStatus {
+  PENDING  // Shows in suggestions
+  REJECTED // Hidden, never suggest again
 }

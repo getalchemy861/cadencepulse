@@ -128,3 +128,163 @@ export async function refreshAccessToken(
     return null;
   }
 }
+
+export interface RecipientInfo {
+  email: string;
+  name: string | null;
+  lastEmailed: Date;
+  emailCount: number;
+}
+
+/**
+ * Parse email address from "Name <email>" or plain email format
+ */
+function parseEmailAddress(raw: string): { email: string; name: string | null } | null {
+  const trimmed = raw.trim();
+
+  // Match "Name <email@domain.com>" format
+  const bracketMatch = trimmed.match(/^(.+?)\s*<([^>]+)>$/);
+  if (bracketMatch) {
+    return {
+      name: bracketMatch[1].trim().replace(/^["']|["']$/g, ""),
+      email: bracketMatch[2].trim().toLowerCase(),
+    };
+  }
+
+  // Plain email
+  const emailMatch = trimmed.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+  if (emailMatch) {
+    return { email: trimmed.toLowerCase(), name: null };
+  }
+
+  return null;
+}
+
+/**
+ * Check if an email should be filtered out (noreply, automated, etc.)
+ */
+function shouldFilterEmail(email: string): boolean {
+  const filterPatterns = [
+    /^noreply@/i,
+    /^no-reply@/i,
+    /^notifications?@/i,
+    /^support@/i,
+    /^info@/i,
+    /^help@/i,
+    /^mailer-daemon@/i,
+    /^postmaster@/i,
+    /^feedback@/i,
+    /^newsletter@/i,
+    /^updates@/i,
+    /^alerts?@/i,
+    /^donotreply@/i,
+    /^do-not-reply@/i,
+    /^admin@/i,
+    /^automated@/i,
+    /^system@/i,
+  ];
+
+  return filterPatterns.some((pattern) => pattern.test(email));
+}
+
+/**
+ * Scan sent emails from the last 6 months and extract unique recipients
+ */
+export async function scanSentEmailsForRecipients(
+  gmail: gmail_v1.Gmail,
+  userEmail: string
+): Promise<RecipientInfo[]> {
+  try {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const afterDate = sixMonthsAgo.toISOString().split("T")[0].replace(/-/g, "/");
+
+    // Fetch sent emails from last 6 months
+    const response = await gmail.users.messages.list({
+      userId: "me",
+      q: `in:sent after:${afterDate}`,
+      maxResults: 200,
+    });
+
+    const messages = response.data.messages;
+    if (!messages || messages.length === 0) {
+      return [];
+    }
+
+    // Aggregate recipients by email
+    const recipientMap = new Map<string, RecipientInfo>();
+    const userEmailLower = userEmail.toLowerCase();
+
+    // Fetch headers for each message
+    for (const msg of messages) {
+      if (!msg.id) continue;
+
+      try {
+        const message = await gmail.users.messages.get({
+          userId: "me",
+          id: msg.id,
+          format: "metadata",
+          metadataHeaders: ["To", "Cc", "Date"],
+        });
+
+        const headers = message.data.payload?.headers || [];
+        const toHeader = headers.find((h) => h.name === "To")?.value || "";
+        const ccHeader = headers.find((h) => h.name === "Cc")?.value || "";
+        const dateHeader = headers.find((h) => h.name === "Date")?.value;
+
+        const emailDate = dateHeader
+          ? new Date(dateHeader)
+          : message.data.internalDate
+          ? new Date(parseInt(message.data.internalDate, 10))
+          : new Date();
+
+        // Parse all recipients from To and Cc
+        const allRecipients = `${toHeader},${ccHeader}`
+          .split(",")
+          .map((r) => parseEmailAddress(r))
+          .filter((r): r is { email: string; name: string | null } => r !== null);
+
+        for (const recipient of allRecipients) {
+          // Filter out user's own email and automated addresses
+          if (
+            recipient.email === userEmailLower ||
+            shouldFilterEmail(recipient.email)
+          ) {
+            continue;
+          }
+
+          const existing = recipientMap.get(recipient.email);
+          if (existing) {
+            existing.emailCount++;
+            if (emailDate > existing.lastEmailed) {
+              existing.lastEmailed = emailDate;
+              // Update name if we have one and didn't before
+              if (recipient.name && !existing.name) {
+                existing.name = recipient.name;
+              }
+            }
+          } else {
+            recipientMap.set(recipient.email, {
+              email: recipient.email,
+              name: recipient.name,
+              lastEmailed: emailDate,
+              emailCount: 1,
+            });
+          }
+        }
+      } catch (error) {
+        // Skip messages that fail to fetch
+        console.error(`Error fetching message ${msg.id}:`, error);
+        continue;
+      }
+    }
+
+    // Convert to array and sort by email count (most frequent first)
+    return Array.from(recipientMap.values()).sort(
+      (a, b) => b.emailCount - a.emailCount
+    );
+  } catch (error) {
+    console.error("Error scanning sent emails:", error);
+    return [];
+  }
+}

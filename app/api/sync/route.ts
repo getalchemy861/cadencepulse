@@ -7,9 +7,10 @@ import {
   getLatestEmailTimestamp,
   getLatestMeetingTimestamp,
   refreshAccessToken,
+  scanSentEmailsForRecipients,
 } from "@/lib/google-api";
 import { calculateStatus } from "@/lib/pulse-logic";
-import { Source } from "@prisma/client";
+import { Source, SuggestedContactStatus } from "@prisma/client";
 
 export async function POST() {
   const session = await auth();
@@ -152,10 +153,62 @@ export async function POST() {
 
   const syncedCount = results.filter((r) => r.updated).length;
 
+  // Scan for new contact suggestions
+  let newSuggestionsCount = 0;
+  try {
+    // Get user email for filtering
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { email: true },
+    });
+
+    if (user?.email) {
+      const recipients = await scanSentEmailsForRecipients(gmail, user.email);
+
+      // Get existing contact emails (already tracked)
+      const existingContactEmails = new Set(
+        contacts.map((c) => c.email.toLowerCase())
+      );
+
+      // Get already-suggested emails (to avoid duplicates)
+      const existingSuggestions = await prisma.suggestedContact.findMany({
+        where: { userId: session.user.id },
+        select: { email: true },
+      });
+      const existingSuggestionEmails = new Set(
+        existingSuggestions.map((s) => s.email.toLowerCase())
+      );
+
+      // Filter and create new suggestions
+      for (const recipient of recipients) {
+        if (
+          !existingContactEmails.has(recipient.email) &&
+          !existingSuggestionEmails.has(recipient.email)
+        ) {
+          await prisma.suggestedContact.create({
+            data: {
+              email: recipient.email,
+              name: recipient.name,
+              lastEmailed: recipient.lastEmailed,
+              emailCount: recipient.emailCount,
+              status: SuggestedContactStatus.PENDING,
+              userId: session.user.id,
+            },
+          });
+          newSuggestionsCount++;
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error scanning for suggestions:", error);
+    // Don't fail the whole sync if suggestion scanning fails
+  }
+
   return NextResponse.json({
     message: `Synced ${syncedCount} of ${contacts.length} contacts`,
     synced: syncedCount,
     total: contacts.length,
     results,
+    newSuggestions: newSuggestionsCount,
   });
 }

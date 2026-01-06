@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, PhoneOutgoing, RefreshCw, Loader2 } from "lucide-react";
+import { Bell, PhoneOutgoing, RefreshCw, Loader2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut, useSession } from "next-auth/react";
+import Link from "next/link";
 
 interface HeaderProps {
   onSyncComplete?: () => void;
@@ -38,8 +39,16 @@ export function Header({ onSyncComplete }: HeaderProps) {
       const data = await response.json();
 
       if (response.ok) {
-        setSyncMessage(`Synced ${data.synced} contacts`);
+        const parts = [`Synced ${data.synced} contacts`];
+        if (data.newSuggestions > 0) {
+          parts.push(`found ${data.newSuggestions} new suggestions`);
+        }
+        setSyncMessage(parts.join(", "));
         onSyncComplete?.();
+        // Reload page to show new suggestions
+        if (data.newSuggestions > 0) {
+          window.location.reload();
+        }
       } else {
         setSyncMessage(data.error || "Sync failed");
       }
@@ -115,6 +124,12 @@ export function Header({ onSyncComplete }: HeaderProps) {
               </div>
             </div>
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link href="/dashboard/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="cursor-pointer text-red-600 focus:text-red-600"
               onClick={() => signOut({ callbackUrl: "/" })}

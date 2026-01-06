@@ -170,11 +170,12 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <div className="bg-slate-100 rounded-2xl p-8 aspect-video flex items-center justify-center">
-            <div className="text-center text-slate-400">
-              <PhoneOutgoing className="h-16 w-16 mx-auto mb-4 opacity-50" />
-              <p className="font-medium">Dashboard Preview</p>
-            </div>
+          <div className="rounded-2xl overflow-hidden shadow-2xl shadow-slate-300/50 border border-slate-200">
+            <img
+              src="/dashboard-preview.png"
+              alt="Pulse Dashboard showing contacts with different relationship health statuses"
+              className="w-full h-auto"
+            />
           </div>
         </div>
       </main>
