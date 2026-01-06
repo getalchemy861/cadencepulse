@@ -12,7 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Undo2, Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowLeft, Undo2, Loader2, Check } from "lucide-react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 
@@ -24,12 +31,42 @@ interface RejectedContact {
   emailCount: number;
 }
 
+const LOOKBACK_OPTIONS = [
+  { value: "7", label: "7 days" },
+  { value: "14", label: "14 days" },
+  { value: "30", label: "30 days" },
+  { value: "60", label: "60 days" },
+  { value: "90", label: "90 days" },
+  { value: "180", label: "6 months" },
+  { value: "365", label: "1 year" },
+];
+
 export default function SettingsPage() {
   const [rejectedContacts, setRejectedContacts] = useState<RejectedContact[]>(
     []
   );
   const [loading, setLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+
+  // Sync settings state
+  const [syncLookbackDays, setSyncLookbackDays] = useState<string>("30");
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      const response = await fetch("/api/settings");
+      if (response.ok) {
+        const data = await response.json();
+        setSyncLookbackDays(String(data.syncLookbackDays));
+      }
+    } catch (error) {
+      console.error("Failed to fetch settings:", error);
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, []);
 
   const fetchRejected = useCallback(async () => {
     try {
@@ -46,8 +83,29 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
+    fetchSettings();
     fetchRejected();
-  }, [fetchRejected]);
+  }, [fetchSettings, fetchRejected]);
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    setSettingsSaved(false);
+    try {
+      const response = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ syncLookbackDays: Number(syncLookbackDays) }),
+      });
+      if (response.ok) {
+        setSettingsSaved(true);
+        setTimeout(() => setSettingsSaved(false), 2000);
+      }
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const handleRestore = async (id: string) => {
     setRestoringId(id);
@@ -86,6 +144,56 @@ export default function SettingsPage() {
               Manage your account preferences
             </p>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Sync Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-slate-700">
+                    Sync Lookback Period
+                  </label>
+                  <p className="text-sm text-slate-500 mb-2">
+                    How far back to search when syncing with Gmail and Calendar.
+                    Longer periods may take more time to sync.
+                  </p>
+                  {settingsLoading ? (
+                    <div className="h-10 w-32 bg-slate-100 animate-pulse rounded-md" />
+                  ) : (
+                    <Select
+                      value={syncLookbackDays}
+                      onValueChange={setSyncLookbackDays}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Select period" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LOOKBACK_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <Button
+                  onClick={handleSaveSettings}
+                  disabled={savingSettings || settingsLoading}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {savingSettings ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : settingsSaved ? (
+                    <Check className="h-4 w-4 mr-2" />
+                  ) : null}
+                  {settingsSaved ? "Saved!" : "Save Changes"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

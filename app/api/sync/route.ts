@@ -65,13 +65,21 @@ export async function POST() {
     });
   }
 
+  // Get user settings including syncLookbackDays
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { email: true, syncLookbackDays: true },
+  });
+
+  const lookbackDays = user?.syncLookbackDays ?? 30;
+
   // Get all contacts for this user
   const contacts = await prisma.contact.findMany({
     where: { userId: session.user.id },
   });
 
   if (contacts.length === 0) {
-    return NextResponse.json({ message: "No contacts to sync", synced: 0 });
+    return NextResponse.json({ message: "No contacts to sync", synced: 0, lookbackDays });
   }
 
   const gmail = getGmailClient(accessToken);
@@ -90,7 +98,7 @@ export async function POST() {
     let source: Source | null = null;
 
     // Check Gmail
-    const emailTimestamp = await getLatestEmailTimestamp(gmail, contact.email);
+    const emailTimestamp = await getLatestEmailTimestamp(gmail, contact.email, lookbackDays);
     if (emailTimestamp && emailTimestamp > (latestInteraction || new Date(0))) {
       latestInteraction = emailTimestamp;
       source = Source.GMAIL;
@@ -99,7 +107,8 @@ export async function POST() {
     // Check Calendar
     const meetingTimestamp = await getLatestMeetingTimestamp(
       calendar,
-      contact.email
+      contact.email,
+      lookbackDays
     );
     if (
       meetingTimestamp &&
@@ -156,14 +165,8 @@ export async function POST() {
   // Scan for new contact suggestions
   let newSuggestionsCount = 0;
   try {
-    // Get user email for filtering
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { email: true },
-    });
-
     if (user?.email) {
-      const recipients = await scanSentEmailsForRecipients(gmail, user.email);
+      const recipients = await scanSentEmailsForRecipients(gmail, user.email, lookbackDays);
 
       // Get existing contact emails (already tracked)
       const existingContactEmails = new Set(
@@ -210,5 +213,6 @@ export async function POST() {
     total: contacts.length,
     results,
     newSuggestions: newSuggestionsCount,
+    lookbackDays,
   });
 }

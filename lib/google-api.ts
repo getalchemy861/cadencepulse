@@ -17,15 +17,21 @@ export function getCalendarClient(accessToken: string): calendar_v3.Calendar {
 
 /**
  * Get the timestamp of the most recent sent email to a contact
+ * @param lookbackDays - Number of days to look back (default: 30)
  */
 export async function getLatestEmailTimestamp(
   gmail: gmail_v1.Gmail,
-  contactEmail: string
+  contactEmail: string,
+  lookbackDays: number = 30
 ): Promise<Date | null> {
   try {
+    const lookbackDate = new Date();
+    lookbackDate.setDate(lookbackDate.getDate() - lookbackDays);
+    const afterDate = lookbackDate.toISOString().split("T")[0].replace(/-/g, "/");
+
     const response = await gmail.users.messages.list({
       userId: "me",
-      q: `to:${contactEmail} in:sent`,
+      q: `to:${contactEmail} in:sent after:${afterDate}`,
       maxResults: 1,
     });
 
@@ -63,18 +69,20 @@ export async function getLatestEmailTimestamp(
 
 /**
  * Get the timestamp of the most recent calendar event with a contact
+ * @param lookbackDays - Number of days to look back (default: 30)
  */
 export async function getLatestMeetingTimestamp(
   calendar: calendar_v3.Calendar,
-  contactEmail: string
+  contactEmail: string,
+  lookbackDays: number = 30
 ): Promise<Date | null> {
   try {
     const now = new Date();
-    const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+    const lookbackDate = new Date(now.getTime() - lookbackDays * 24 * 60 * 60 * 1000);
 
     const response = await calendar.events.list({
       calendarId: "primary",
-      timeMin: oneYearAgo.toISOString(),
+      timeMin: lookbackDate.toISOString(),
       timeMax: now.toISOString(),
       singleEvents: true,
       orderBy: "startTime",
@@ -188,18 +196,20 @@ function shouldFilterEmail(email: string): boolean {
 }
 
 /**
- * Scan sent emails from the last 6 months and extract unique recipients
+ * Scan sent emails and extract unique recipients
+ * @param lookbackDays - Number of days to look back (default: 30)
  */
 export async function scanSentEmailsForRecipients(
   gmail: gmail_v1.Gmail,
-  userEmail: string
+  userEmail: string,
+  lookbackDays: number = 30
 ): Promise<RecipientInfo[]> {
   try {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    const afterDate = sixMonthsAgo.toISOString().split("T")[0].replace(/-/g, "/");
+    const lookbackDate = new Date();
+    lookbackDate.setDate(lookbackDate.getDate() - lookbackDays);
+    const afterDate = lookbackDate.toISOString().split("T")[0].replace(/-/g, "/");
 
-    // Fetch sent emails from last 6 months
+    // Fetch sent emails from lookback period
     const response = await gmail.users.messages.list({
       userId: "me",
       q: `in:sent after:${afterDate}`,
