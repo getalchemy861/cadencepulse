@@ -57,6 +57,7 @@ model User {
   sessions          Session[]
   contacts          Contact[]
   suggestedContacts SuggestedContact[]
+  reminders         Reminder[]
 }
 
 model Contact {
@@ -71,6 +72,7 @@ model Contact {
   userId          String
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   interactions    Interaction[]
+  reminders       Reminder[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -115,4 +117,25 @@ model SuggestedContact {
 enum SuggestedContactStatus {
   PENDING  // Shows in suggestions
   REJECTED // Hidden, never suggest again
+}
+
+model Reminder {
+  id        String         @id @default(cuid())
+  dueDate   DateTime
+  note      String?
+  status    ReminderStatus @default(PENDING)
+  contactId String
+  contact   Contact        @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([userId, status, dueDate])
+}
+
+enum ReminderStatus {
+  PENDING
+  DISMISSED
+  COMPLETED
 }

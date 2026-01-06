@@ -10,18 +10,18 @@ interface StatusBadgeProps {
 
 const statusConfig = {
   [Status.OVERDUE]: {
-    styles: "bg-red-50 text-red-700 border-red-200 hover:bg-red-100",
+    styles: "bg-[#d4a853]/10 text-[#d4a853] border-[#d4a853]/30 hover:bg-[#d4a853]/20",
     icon: AlertCircle,
     label: "Overdue",
   },
   [Status.IN_WINDOW]: {
-    styles: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
+    styles: "bg-[#d4a853]/5 text-[#c49943] border-[#d4a853]/20 hover:bg-[#d4a853]/10",
     icon: Clock,
     label: "Due Soon",
   },
   [Status.HEALTHY]: {
     styles:
-      "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
+      "bg-[#1a5f4a]/10 text-[#1a5f4a] border-[#1a5f4a]/20 hover:bg-[#1a5f4a]/15",
     icon: CheckCircle2,
     label: "Healthy",
   },

@@ -90,18 +90,18 @@ export function SuggestedContacts({ onContactAdded }: SuggestedContactsProps) {
 
   return (
     <>
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 shadow-sm">
+      <Card className="bg-gradient-to-r from-[#1a5f4a]/5 to-[#d4a853]/10 border-[#1a5f4a]/10 shadow-sm">
         <CardContent className="p-5">
           <div className="flex items-start gap-4">
-            <div className="p-2 bg-blue-100 rounded-lg shrink-0">
-              <Lightbulb className="h-5 w-5 text-blue-600" />
+            <div className="p-2 bg-[#d4a853]/20 rounded-lg shrink-0">
+              <Lightbulb className="h-5 w-5 text-[#d4a853]" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-slate-900 mb-1">
+              <h3 className="font-bold text-[#1a5f4a] mb-1">
                 We found {suggestions.length} people you&apos;ve emailed
                 recently
               </h3>
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-sm text-[#1a5f4a]/60 mb-4">
                 Add them to your contact list to track your relationship health.
               </p>
 
@@ -109,16 +109,16 @@ export function SuggestedContacts({ onContactAdded }: SuggestedContactsProps) {
                 {displayedSuggestions.map((suggestion) => (
                   <div
                     key={suggestion.id}
-                    className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-slate-200"
+                    className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-[#1a5f4a]/10"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-slate-900 truncate">
+                      <div className="font-semibold text-[#1a5f4a] truncate">
                         {suggestion.name || suggestion.email.split("@")[0]}
                       </div>
-                      <div className="text-sm text-slate-500 truncate">
+                      <div className="text-sm text-[#1a5f4a]/50 truncate">
                         {suggestion.email}
                         {suggestion.emailCount > 1 && (
-                          <span className="ml-2 text-blue-600">
+                          <span className="ml-2 text-[#d4a853]">
                             ({suggestion.emailCount} emails)
                           </span>
                         )}
@@ -130,7 +130,7 @@ export function SuggestedContacts({ onContactAdded }: SuggestedContactsProps) {
                         size="sm"
                         onClick={() => handleReject(suggestion.id)}
                         disabled={rejectingId === suggestion.id}
-                        className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50"
+                        className="h-8 w-8 p-0 text-[#1a5f4a]/40 hover:text-red-600 hover:border-red-200 hover:bg-red-50 border-[#1a5f4a]/20"
                       >
                         {rejectingId === suggestion.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -141,7 +141,7 @@ export function SuggestedContacts({ onContactAdded }: SuggestedContactsProps) {
                       <Button
                         size="sm"
                         onClick={() => handleAcceptClick(suggestion)}
-                        className="h-8 bg-blue-600 hover:bg-blue-700"
+                        className="h-8 bg-[#1a5f4a] hover:bg-[#164a3a]"
                       >
                         <Check className="h-4 w-4 mr-1" />
                         Add
@@ -156,7 +156,7 @@ export function SuggestedContacts({ onContactAdded }: SuggestedContactsProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowAll(true)}
-                  className="mt-3 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                  className="mt-3 text-[#1a5f4a] hover:text-[#164a3a] hover:bg-[#1a5f4a]/10"
                 >
                   View {remainingCount} more
                   <ChevronRight className="h-4 w-4 ml-1" />
@@ -168,7 +168,7 @@ export function SuggestedContacts({ onContactAdded }: SuggestedContactsProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowAll(false)}
-                  className="mt-3 text-slate-500 hover:text-slate-700"
+                  className="mt-3 text-[#1a5f4a]/60 hover:text-[#1a5f4a]"
                 >
                   Show less
                 </Button>

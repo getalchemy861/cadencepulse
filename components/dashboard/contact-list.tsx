@@ -9,6 +9,7 @@ import {
   Search,
   Clock,
   Loader2,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,6 +33,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { StatusBadge } from "./status-badge";
 import { AddContactDialog } from "./add-contact-dialog";
+import { EditContactDialog } from "./edit-contact-dialog";
+import { SetReminderDialog } from "./set-reminder-dialog";
 import { Status } from "@prisma/client";
 import { formatLastContacted, getOutreachSuggestion } from "@/lib/pulse-logic";
 
@@ -52,6 +55,8 @@ export function ContactList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<Status | "ALL">("ALL");
   const [checkingIn, setCheckingIn] = useState<string | null>(null);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [reminderContact, setReminderContact] = useState<Contact | null>(null);
 
   const fetchContacts = useCallback(async () => {
     try {
@@ -127,7 +132,7 @@ export function ContactList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#1a5f4a]" />
       </div>
     );
   }
@@ -137,14 +142,14 @@ export function ContactList() {
       {/* Page Titles */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
-          <h2 className="text-3xl font-extrabold tracking-tight">
+          <h2 className="text-3xl font-black tracking-tight text-[#1a5f4a]">
             Relationship Health
           </h2>
-          <p className="text-slate-500 text-lg">
+          <p className="text-[#1a5f4a]/60 text-lg">
             {overdueCount > 0 ? (
               <>
                 Check in with{" "}
-                <span className="font-semibold text-red-600 underline decoration-red-200 underline-offset-4">
+                <span className="font-semibold text-[#d4a853] underline decoration-[#d4a853]/30 underline-offset-4">
                   {overdueCount} contact{overdueCount !== 1 ? "s" : ""}
                 </span>{" "}
                 to maintain your network.
@@ -158,14 +163,14 @@ export function ContactList() {
       </div>
 
       {/* Filters and Search */}
-      <div className="flex flex-col md:flex-row gap-4 p-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 p-2 bg-white rounded-2xl border border-[#1a5f4a]/10 shadow-sm">
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-[#1a5f4a]/40" />
           <Input
             placeholder="Search by name, company, or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-11 h-11 border-0 bg-slate-50 focus-visible:ring-1 focus-visible:ring-blue-100 focus-visible:bg-white transition-all text-base"
+            className="pl-11 h-11 border-0 bg-[#1a5f4a]/5 focus-visible:ring-1 focus-visible:ring-[#1a5f4a]/20 focus-visible:bg-white transition-all text-base text-[#1a5f4a]"
           />
         </div>
         <div className="flex gap-2">
@@ -173,24 +178,24 @@ export function ContactList() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="h-11 border-dashed px-4 text-slate-600 flex gap-2.5 font-medium"
+                className="h-11 border-dashed border-[#1a5f4a]/20 px-4 text-[#1a5f4a] flex gap-2.5 font-medium hover:bg-[#1a5f4a]/5"
               >
                 <Filter className="h-4 w-4" />
                 Status: {statusFilter === "ALL" ? "All" : statusFilter}
                 <ChevronDown className="h-4 w-4 opacity-40" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setStatusFilter("ALL")}>
+            <DropdownMenuContent className="border-[#1a5f4a]/10">
+              <DropdownMenuItem onClick={() => setStatusFilter("ALL")} className="text-[#1a5f4a] focus:bg-[#1a5f4a]/5">
                 All
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter(Status.OVERDUE)}>
+              <DropdownMenuItem onClick={() => setStatusFilter(Status.OVERDUE)} className="text-[#1a5f4a] focus:bg-[#1a5f4a]/5">
                 Overdue
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter(Status.IN_WINDOW)}>
+              <DropdownMenuItem onClick={() => setStatusFilter(Status.IN_WINDOW)} className="text-[#1a5f4a] focus:bg-[#1a5f4a]/5">
                 Due Soon
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setStatusFilter(Status.HEALTHY)}>
+              <DropdownMenuItem onClick={() => setStatusFilter(Status.HEALTHY)} className="text-[#1a5f4a] focus:bg-[#1a5f4a]/5">
                 Healthy
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -200,31 +205,31 @@ export function ContactList() {
 
       {/* Contact Table */}
       {filteredContacts.length === 0 ? (
-        <Card className="p-12 text-center">
-          <p className="text-slate-500">
+        <Card className="p-12 text-center border-[#1a5f4a]/10">
+          <p className="text-[#1a5f4a]/60">
             {contacts.length === 0
               ? "No contacts yet. Add your first contact to get started!"
               : "No contacts match your search."}
           </p>
         </Card>
       ) : (
-        <Card className="shadow-sm border-slate-200 overflow-hidden bg-white rounded-2xl ring-1 ring-slate-200/50">
+        <Card className="shadow-sm border-[#1a5f4a]/10 overflow-hidden bg-white rounded-2xl ring-1 ring-[#1a5f4a]/5">
           <Table>
-            <TableHeader className="bg-slate-50/50">
-              <TableRow className="hover:bg-transparent border-slate-100">
-                <TableHead className="pl-6 h-14 font-semibold text-slate-600">
+            <TableHeader className="bg-[#1a5f4a]/5">
+              <TableRow className="hover:bg-transparent border-[#1a5f4a]/10">
+                <TableHead className="pl-6 h-14 font-semibold text-[#1a5f4a]">
                   Contact
                 </TableHead>
-                <TableHead className="h-14 font-semibold text-slate-600">
+                <TableHead className="h-14 font-semibold text-[#1a5f4a]">
                   Health Status
                 </TableHead>
-                <TableHead className="h-14 font-semibold text-slate-600">
+                <TableHead className="h-14 font-semibold text-[#1a5f4a]">
                   Last Spoke
                 </TableHead>
-                <TableHead className="hidden lg:table-cell h-14 font-semibold text-slate-600">
+                <TableHead className="hidden lg:table-cell h-14 font-semibold text-[#1a5f4a]">
                   Cadence
                 </TableHead>
-                <TableHead className="text-right pr-6 h-14 font-semibold text-slate-600">
+                <TableHead className="text-right pr-6 h-14 font-semibold text-[#1a5f4a]">
                   Quick Actions
                 </TableHead>
               </TableRow>
@@ -240,30 +245,30 @@ export function ContactList() {
                 return (
                   <TableRow
                     key={contact.id}
-                    className="group hover:bg-slate-50/80 border-slate-100 transition-colors"
+                    className="group hover:bg-[#1a5f4a]/5 border-[#1a5f4a]/10 transition-colors"
                   >
                     <TableCell className="pl-6 py-5">
                       <div className="flex items-center gap-4">
-                        <Avatar className="h-11 w-11 border border-slate-200 shadow-sm transition-transform group-hover:scale-105">
+                        <Avatar className="h-11 w-11 border border-[#1a5f4a]/10 shadow-sm transition-transform group-hover:scale-105">
                           <AvatarFallback
                             className={`${
                               contact.status === Status.OVERDUE
-                                ? "bg-red-50 text-red-700"
-                                : "bg-slate-100 text-slate-600"
+                                ? "bg-[#d4a853]/20 text-[#d4a853]"
+                                : "bg-[#1a5f4a]/10 text-[#1a5f4a]"
                             } font-bold`}
                           >
                             {getInitials(contact.name)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="space-y-0.5">
-                          <div className="font-bold text-slate-900 text-[15px]">
+                          <div className="font-bold text-[#1a5f4a] text-[15px]">
                             {contact.name}
                           </div>
-                          <div className="text-sm text-slate-500 font-medium">
+                          <div className="text-sm text-[#1a5f4a]/60 font-medium">
                             {contact.company || contact.email}
                           </div>
                           {suggestion && (
-                            <div className="text-xs text-amber-600 mt-1">
+                            <div className="text-xs text-[#d4a853] mt-1">
                               {suggestion}
                             </div>
                           )}
@@ -275,12 +280,12 @@ export function ContactList() {
                       <StatusBadge status={contact.status} />
                     </TableCell>
 
-                    <TableCell className="text-sm font-semibold text-slate-600">
+                    <TableCell className="text-sm font-semibold text-[#1a5f4a]/70">
                       {formatLastContacted(new Date(contact.lastInteraction))}
                     </TableCell>
 
-                    <TableCell className="hidden lg:table-cell text-slate-500 font-medium text-sm">
-                      <span className="inline-flex items-center rounded-lg bg-slate-100/80 px-2.5 py-1 ring-1 ring-inset ring-slate-200/50">
+                    <TableCell className="hidden lg:table-cell text-[#1a5f4a]/60 font-medium text-sm">
+                      <span className="inline-flex items-center rounded-lg bg-[#1a5f4a]/5 px-2.5 py-1 ring-1 ring-inset ring-[#1a5f4a]/10">
                         Every {contact.targetFrequency} days
                       </span>
                     </TableCell>
@@ -298,8 +303,8 @@ export function ContactList() {
                           disabled={checkingIn === contact.id}
                           className={`h-9 px-4 font-semibold transition-all ${
                             contact.status === Status.OVERDUE
-                              ? "bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-200"
-                              : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-sm"
+                              ? "bg-[#d4a853] hover:bg-[#c49943] text-white shadow-md shadow-[#d4a853]/30"
+                              : "bg-white hover:bg-[#1a5f4a]/5 text-[#1a5f4a] border border-[#1a5f4a]/20 shadow-sm"
                           }`}
                         >
                           {checkingIn === contact.id ? (
@@ -309,7 +314,7 @@ export function ContactList() {
                               className={`mr-2 h-4 w-4 ${
                                 contact.status === Status.OVERDUE
                                   ? "text-white"
-                                  : "text-emerald-600"
+                                  : "text-[#1a5f4a]"
                               }`}
                             />
                           )}
@@ -321,26 +326,38 @@ export function ContactList() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-9 w-9 text-slate-400 hover:text-slate-900 transition-colors"
+                              className="h-9 w-9 text-[#1a5f4a]/40 hover:text-[#1a5f4a] transition-colors"
                             >
                               <MoreHorizontal className="h-5 w-5" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
-                            className="w-56 rounded-xl p-1.5 shadow-xl ring-1 ring-slate-200 border-0"
+                            className="w-56 rounded-xl p-1.5 shadow-xl ring-1 ring-[#1a5f4a]/10 border-0"
                           >
-                            <DropdownMenuLabel className="px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">
+                            <DropdownMenuLabel className="px-2 py-1.5 text-xs font-bold uppercase tracking-wider text-[#1a5f4a]/50">
                               Relationship Care
                             </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="rounded-md cursor-pointer px-2 py-2 font-medium">
+                            <DropdownMenuSeparator className="bg-[#1a5f4a]/10" />
+                            <DropdownMenuItem
+                              className="rounded-md cursor-pointer px-2 py-2 font-medium text-[#1a5f4a] focus:bg-[#1a5f4a]/5"
+                              onClick={() => setEditingContact(contact)}
+                            >
                               Edit Contact
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-md cursor-pointer px-2 py-2 font-medium">
+                            <DropdownMenuItem
+                              className="rounded-md cursor-pointer px-2 py-2 font-medium text-[#1a5f4a] focus:bg-[#1a5f4a]/5"
+                              onClick={() => setEditingContact(contact)}
+                            >
                               <Clock className="mr-2 h-4 w-4" /> Change Cadence
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="rounded-md cursor-pointer px-2 py-2 font-medium text-[#1a5f4a] focus:bg-[#1a5f4a]/5"
+                              onClick={() => setReminderContact(contact)}
+                            >
+                              <Bell className="mr-2 h-4 w-4" /> Set Reminder
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-[#1a5f4a]/10" />
                             <DropdownMenuItem
                               className="rounded-md cursor-pointer px-2 py-2 font-semibold text-red-600 focus:text-red-700 focus:bg-red-50"
                               onClick={() => handleDelete(contact.id)}
@@ -358,6 +375,20 @@ export function ContactList() {
           </Table>
         </Card>
       )}
+
+      <EditContactDialog
+        open={!!editingContact}
+        onOpenChange={(open) => !open && setEditingContact(null)}
+        contact={editingContact}
+        onContactUpdated={fetchContacts}
+      />
+
+      <SetReminderDialog
+        open={!!reminderContact}
+        onOpenChange={(open) => !open && setReminderContact(null)}
+        contact={reminderContact}
+        onReminderSet={() => {}}
+      />
     </div>
   );
 }

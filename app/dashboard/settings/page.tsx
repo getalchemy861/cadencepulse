@@ -124,13 +124,13 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans text-slate-900">
+    <div className="min-h-screen bg-[#faf8f5] flex flex-col font-sans text-[#1a5f4a]">
       <Header />
       <main className="flex-1 p-6 md:p-8 max-w-4xl mx-auto w-full">
         <div className="mb-6">
           <Link
             href="/dashboard"
-            className="inline-flex items-center text-sm text-slate-500 hover:text-slate-900 transition-colors"
+            className="inline-flex items-center text-sm text-[#1a5f4a]/60 hover:text-[#1a5f4a] transition-colors"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Dashboard
@@ -139,39 +139,39 @@ export default function SettingsPage() {
 
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
-            <p className="text-slate-500 mt-1">
+            <h1 className="text-3xl font-black tracking-tight text-[#1a5f4a]">Settings</h1>
+            <p className="text-[#1a5f4a]/60 mt-1">
               Manage your account preferences
             </p>
           </div>
 
-          <Card>
+          <Card className="border-[#1a5f4a]/10">
             <CardHeader>
-              <CardTitle>Sync Settings</CardTitle>
+              <CardTitle className="text-[#1a5f4a]">Sync Settings</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-slate-700">
+                  <label className="text-sm font-medium text-[#1a5f4a]">
                     Sync Lookback Period
                   </label>
-                  <p className="text-sm text-slate-500 mb-2">
+                  <p className="text-sm text-[#1a5f4a]/60 mb-2">
                     How far back to search when syncing with Gmail and Calendar.
                     Longer periods may take more time to sync.
                   </p>
                   {settingsLoading ? (
-                    <div className="h-10 w-32 bg-slate-100 animate-pulse rounded-md" />
+                    <div className="h-10 w-32 bg-[#1a5f4a]/10 animate-pulse rounded-md" />
                   ) : (
                     <Select
                       value={syncLookbackDays}
                       onValueChange={setSyncLookbackDays}
                     >
-                      <SelectTrigger className="w-40">
+                      <SelectTrigger className="w-40 border-[#1a5f4a]/20 text-[#1a5f4a]">
                         <SelectValue placeholder="Select period" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="border-[#1a5f4a]/10">
                         {LOOKBACK_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
+                          <SelectItem key={option.value} value={option.value} className="text-[#1a5f4a] focus:bg-[#1a5f4a]/5">
                             {option.label}
                           </SelectItem>
                         ))}
@@ -182,7 +182,7 @@ export default function SettingsPage() {
                 <Button
                   onClick={handleSaveSettings}
                   disabled={savingSettings || settingsLoading}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-[#1a5f4a] hover:bg-[#164a3a]"
                 >
                   {savingSettings ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -195,12 +195,12 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-[#1a5f4a]/10">
             <CardHeader>
-              <CardTitle>Hidden Suggestions</CardTitle>
+              <CardTitle className="text-[#1a5f4a]">Hidden Suggestions</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-slate-500 mb-4">
+              <p className="text-sm text-[#1a5f4a]/60 mb-4">
                 These contacts were suggested but you chose not to add them.
                 They won&apos;t appear in future suggestions unless you restore
                 them.
@@ -208,35 +208,35 @@ export default function SettingsPage() {
 
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  <Loader2 className="h-6 w-6 animate-spin text-[#1a5f4a]" />
                 </div>
               ) : rejectedContacts.length === 0 ? (
-                <p className="text-center py-8 text-slate-400">
+                <p className="text-center py-8 text-[#1a5f4a]/40">
                   No hidden suggestions
                 </p>
               ) : (
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Hidden</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                  <TableHeader className="bg-[#1a5f4a]/5">
+                    <TableRow className="border-[#1a5f4a]/10">
+                      <TableHead className="text-[#1a5f4a]">Contact</TableHead>
+                      <TableHead className="text-[#1a5f4a]">Hidden</TableHead>
+                      <TableHead className="text-right text-[#1a5f4a]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {rejectedContacts.map((contact) => (
-                      <TableRow key={contact.id}>
+                      <TableRow key={contact.id} className="border-[#1a5f4a]/10">
                         <TableCell>
                           <div>
-                            <div className="font-medium">
+                            <div className="font-medium text-[#1a5f4a]">
                               {contact.name || contact.email.split("@")[0]}
                             </div>
-                            <div className="text-sm text-slate-500">
+                            <div className="text-sm text-[#1a5f4a]/50">
                               {contact.email}
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-slate-500">
+                        <TableCell className="text-[#1a5f4a]/60">
                           {formatDistanceToNow(new Date(contact.updatedAt), {
                             addSuffix: true,
                           })}
@@ -247,6 +247,7 @@ export default function SettingsPage() {
                             size="sm"
                             onClick={() => handleRestore(contact.id)}
                             disabled={restoringId === contact.id}
+                            className="border-[#1a5f4a]/20 text-[#1a5f4a] hover:bg-[#1a5f4a]/5"
                           >
                             {restoringId === contact.id ? (
                               <Loader2 className="h-4 w-4 animate-spin mr-1" />
