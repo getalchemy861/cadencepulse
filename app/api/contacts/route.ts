@@ -18,6 +18,11 @@ export async function GET() {
           orderBy: { timestamp: "desc" },
           take: 1,
         },
+        reminders: {
+          where: { status: "PENDING" },
+          orderBy: { dueDate: "asc" },
+          take: 1,
+        },
       },
       orderBy: { lastInteraction: "asc" },
     });
@@ -30,9 +35,19 @@ export async function GET() {
         contact.varianceBuffer
       );
 
+      const pendingReminder = contact.reminders[0] || null;
+
       return {
         ...contact,
         status: currentStatus,
+        hasReminder: !!pendingReminder,
+        reminder: pendingReminder
+          ? {
+              id: pendingReminder.id,
+              dueDate: pendingReminder.dueDate.toISOString(),
+              note: pendingReminder.note,
+            }
+          : null,
       };
     });
 

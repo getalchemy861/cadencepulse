@@ -10,6 +10,8 @@ import {
   Clock,
   Loader2,
   Bell,
+  Check,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -31,12 +33,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { StatusBadge } from "./status-badge";
 import { AddContactDialog } from "./add-contact-dialog";
 import { EditContactDialog } from "./edit-contact-dialog";
 import { SetReminderDialog } from "./set-reminder-dialog";
 import { Status } from "@prisma/client";
 import { formatLastContacted, getOutreachSuggestion } from "@/lib/pulse-logic";
+import { format, isToday, isTomorrow, isPast } from "date-fns";
 
 interface Contact {
   id: string;
@@ -47,6 +55,12 @@ interface Contact {
   varianceBuffer: number;
   lastInteraction: string;
   status: Status;
+  hasReminder?: boolean;
+  reminder?: {
+    id: string;
+    dueDate: string;
+    note: string | null;
+  } | null;
 }
 
 export function ContactList() {
@@ -105,6 +119,44 @@ export function ContactList() {
     } catch (error) {
       console.error("Failed to delete contact:", error);
     }
+  };
+
+  const handleCompleteReminder = async (reminderId: string) => {
+    try {
+      const response = await fetch(`/api/reminders/${reminderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "COMPLETED" }),
+      });
+      if (response.ok) {
+        fetchContacts();
+      }
+    } catch (error) {
+      console.error("Failed to complete reminder:", error);
+    }
+  };
+
+  const handleDismissReminder = async (reminderId: string) => {
+    try {
+      const response = await fetch(`/api/reminders/${reminderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "DISMISSED" }),
+      });
+      if (response.ok) {
+        fetchContacts();
+      }
+    } catch (error) {
+      console.error("Failed to dismiss reminder:", error);
+    }
+  };
+
+  const formatReminderDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    if (isPast(date) && !isToday(date)) return "Overdue";
+    if (isToday(date)) return "Today";
+    if (isTomorrow(date)) return "Tomorrow";
+    return format(date, "MMM d");
   };
 
   const getInitials = (name: string) =>
@@ -249,17 +301,73 @@ export function ContactList() {
                   >
                     <TableCell className="pl-6 py-5">
                       <div className="flex items-center gap-4">
-                        <Avatar className="h-11 w-11 border border-[#1a5f4a]/10 shadow-sm transition-transform group-hover:scale-105">
-                          <AvatarFallback
-                            className={`${
-                              contact.status === Status.OVERDUE
-                                ? "bg-[#d4a853]/20 text-[#d4a853]"
-                                : "bg-[#1a5f4a]/10 text-[#1a5f4a]"
-                            } font-bold`}
-                          >
-                            {getInitials(contact.name)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <div className="relative">
+                          <Avatar className="h-11 w-11 border border-[#1a5f4a]/10 shadow-sm transition-transform group-hover:scale-105">
+                            <AvatarFallback
+                              className={`${
+                                contact.status === Status.OVERDUE
+                                  ? "bg-[#d4a853]/20 text-[#d4a853]"
+                                  : "bg-[#1a5f4a]/10 text-[#1a5f4a]"
+                              } font-bold`}
+                            >
+                              {getInitials(contact.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          {contact.hasReminder && contact.reminder && (
+                            <Popover modal={true}>
+                              <PopoverTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-[#d4a853] flex items-center justify-center shadow-md hover:scale-110 transition-transform cursor-pointer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Bell className="h-2.5 w-2.5 text-white" />
+                                </button>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-64 p-3 border-[#1a5f4a]/10"
+                                align="start"
+                              >
+                                <div className="space-y-3">
+                                  <div className="space-y-1">
+                                    <div className="text-xs font-semibold text-[#1a5f4a]/50 uppercase tracking-wider">
+                                      Reminder
+                                    </div>
+                                    <div className="font-semibold text-[#1a5f4a]">
+                                      {formatReminderDate(contact.reminder.dueDate)}
+                                    </div>
+                                    {contact.reminder.note && (
+                                      <p className="text-sm text-[#1a5f4a]/70">
+                                        {contact.reminder.note}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      className="flex-1 h-8 bg-[#1a5f4a] hover:bg-[#164a3a]"
+                                      onClick={() => handleCompleteReminder(contact.reminder!.id)}
+                                    >
+                                      <Check className="h-3 w-3 mr-1" />
+                                      Complete
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="flex-1 h-8 border-[#1a5f4a]/20 text-[#1a5f4a] hover:bg-[#1a5f4a]/5"
+                                      onClick={() => handleDismissReminder(contact.reminder!.id)}
+                                    >
+                                      <X className="h-3 w-3 mr-1" />
+                                      Dismiss
+                                    </Button>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </div>
                         <div className="space-y-0.5">
                           <div className="font-bold text-[#1a5f4a] text-[15px]">
                             {contact.name}
@@ -387,7 +495,7 @@ export function ContactList() {
         open={!!reminderContact}
         onOpenChange={(open) => !open && setReminderContact(null)}
         contact={reminderContact}
-        onReminderSet={() => {}}
+        onReminderSet={fetchContacts}
       />
     </div>
   );
